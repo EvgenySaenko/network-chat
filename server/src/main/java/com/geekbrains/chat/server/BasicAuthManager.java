@@ -34,4 +34,19 @@ public class BasicAuthManager implements AuthManager {
         }
         return null;
     }
+
+    @Override
+    public boolean changeNickname(String oldNickname, String newNickname) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void start() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException();
+    }
 }
