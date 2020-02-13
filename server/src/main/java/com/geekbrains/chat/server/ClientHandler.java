@@ -52,6 +52,17 @@ public class ClientHandler {
                             server.sendPrivateMsg(this, tokens[1], tokens[2]);
                             continue;
                         }
+                        if (msg.startsWith("/changenick ")) {
+                            String[] tokens = msg.split(" ", 2); // /changenick newNickname
+                            String newNickname = tokens[1];
+                            if (server.getAuthManager().changeNickname(nickname,newNickname)){
+                                nickname = newNickname;
+                                sendMsg("/set_nick_to " + newNickname);
+                            }else{
+                                sendMsg("Сервер: пользователь с таким ником уже существует");
+                            }
+                            continue;
+                        }
                         if (msg.equals("/end")) {
                             sendMsg("/end_confirm");
                             break;

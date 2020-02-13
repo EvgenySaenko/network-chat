@@ -65,7 +65,7 @@ public class Controller implements Initializable {
             Thread t = new Thread(() -> {
                 try {
                     while (true) {
-                        String msg = network.readMsg();
+                        String msg = network.readMsg();//ответ о смене ника пользователю
                         if (msg.startsWith("/authok ")) { // /authok nick1
                             nickname = msg.split(" ")[1];
                             textArea.appendText("Вы зашли в чат под ником: " + nickname + "\n");
@@ -80,6 +80,11 @@ public class Controller implements Initializable {
                             if (msg.equals("/end_confirm")) {
                                 textArea.appendText("Завершено общение с сервером\n");
                                 break;
+                            }
+                            if (msg.startsWith("/set_nick_to ")) {
+                                nickname = msg.split(" ")[1];
+                                textArea.appendText("Ваш новый ник: " + nickname + "\n");
+                                continue;
                             }
                             if (msg.startsWith("/clients_list ")) { // '/clients_list user1 user2 user3'
                                 Platform.runLater(() -> {
