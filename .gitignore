@@ -1,0 +1,14 @@
+
+
+# Intellij
+.test
+.idea/
+*.iml
+*.iws
+*.xml
+
+
+
+# Maven
+target/
+test/
