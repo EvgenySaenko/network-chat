@@ -9,8 +9,10 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -32,6 +34,7 @@ public class Controller implements Initializable {
     private Network network;
     private boolean authenticated;
     private String nickname;
+    private List<File> history = new ArrayList<>();
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -70,6 +73,7 @@ public class Controller implements Initializable {
                             nickname = msg.split(" ")[1];
                             textArea.appendText("Вы зашли в чат под ником: " + nickname + "\n");
                             setAuthenticated(true);
+                            addListHistory(nickname);
                             break;
                         }
                         textArea.appendText(msg + "\n");
@@ -81,7 +85,7 @@ public class Controller implements Initializable {
                                 textArea.appendText("Завершено общение с сервером\n");
                                 break;
                             }
-                            if (msg.startsWith("/set_nick_to ")) {
+                            if (msg.startsWith("/set_nick_to  ")) {
                                 nickname = msg.split(" ")[1];
                                 textArea.appendText("Ваш новый ник: " + nickname + "\n");
                                 continue;
@@ -98,7 +102,9 @@ public class Controller implements Initializable {
                                 });
                             }
                         } else {
-                            textArea.appendText(msg + "\n");
+                            textArea.appendText(msg + "\n");      //сообщение что пишет юзер в текстполе
+                            wrtMsgToLogFile(nickname,msg);
+
                         }
                     }
                 } catch (IOException e) {
@@ -119,16 +125,46 @@ public class Controller implements Initializable {
             alert.showAndWait();
         }
     }
-
+    //в текстовое поле текст и очищается поле ввода(по Enter)
     public void sendMsg(ActionEvent actionEvent) {
         try {
-            network.sendMsg(msgField.getText());
+            network.sendMsg(msgField.getText());//запиши в исход все что в текстполе
             msgField.clear();
             msgField.requestFocus();
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "Не удалось отправить сообщение, проверьте сетевое подключение", ButtonType.OK);
             alert.showAndWait();
         }
+    }
+     //как пользователь авторизовался => создаем именной файл =>добавляем в список с файлами
+    public void addListHistory(String nickname){
+        File file = new File("history_"+nickname+".txt");
+        history.add(file);
+    }
+
+    //записываем в файл => в такой то директории
+    private void wrtMsgToLogFile(String nickname,String msg) {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter("C:/Users/EvgenyBoss/Desktop/january-chat/" +
+                                                            "HistoryLog/history_"+nickname+".txt",true))) {
+            out.write( msg + "\n");
+            out.flush();        //выполняет все чтобыло в буфере и очищает его
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //создадим метод который будет вытаскивать файл из списка файла
+    private File getOutFile(String nickname){
+        String name = "history_"+nickname+".txt/";
+        File file = null;
+        if (history.size() != 0){
+            for (int i = 0; i < history.size(); i++) {
+                if (history.get(i).equals(name)) {
+                     file = history.get(i);
+                }
+            }
+        }
+        return file;
     }
 
     public void tryToAuth(ActionEvent actionEvent) {
