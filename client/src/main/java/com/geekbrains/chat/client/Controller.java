@@ -2,15 +2,15 @@ package com.geekbrains.chat.client;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -36,7 +36,7 @@ public class Controller implements Initializable {
     private String nickname;
     private List<File> history = new ArrayList<>();
 
-    public void setAuthenticated(boolean authenticated) {
+    private void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
         loginBox.setVisible(!authenticated);
         loginBox.setManaged(!authenticated);
@@ -58,7 +58,7 @@ public class Controller implements Initializable {
         });
     }
 
-    public void tryToConnect() {
+    private void tryToConnect() {
         try {
             if (network != null && network.isConnected()) {
                 return;
@@ -72,6 +72,7 @@ public class Controller implements Initializable {
                         if (msg.startsWith("/authok ")) { // /authok nick1
                             nickname = msg.split(" ")[1];
                             textArea.appendText("Вы зашли в чат под ником: " + nickname + "\n");
+                            textArea.appendText(getHistory());//добавим 100 последних строка истории в лог
                             setAuthenticated(true);
                             addListHistory(nickname);
                             break;
@@ -103,7 +104,7 @@ public class Controller implements Initializable {
                             }
                         } else {
                             textArea.appendText(msg + "\n");      //сообщение что пишет юзер в текстполе
-                            wrtMsgToLogFile(nickname,msg);
+                            wrtMsgToLogFile(msg);
 
                         }
                     }
@@ -125,6 +126,23 @@ public class Controller implements Initializable {
             alert.showAndWait();
         }
     }
+    //достанем последние 100 строка из файла
+    private String getHistory() {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader out = new BufferedReader(new FileReader("HistoryLog/history_" + nickname + ".txt"))) {
+            List<String> list = Files.readAllLines(Paths.get("HistoryLog/history_" + nickname + ".txt"));
+            int start = 0;
+            if (list.size() > 100) start = list.size() - 100;
+            for (int i = start; i < list.size(); i++) {
+                 sb.append(list.get(i)).append("\n");
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return sb.toString();
+
+    }
+
     //в текстовое поле текст и очищается поле ввода(по Enter)
     public void sendMsg(ActionEvent actionEvent) {
         try {
@@ -136,35 +154,20 @@ public class Controller implements Initializable {
             alert.showAndWait();
         }
     }
-     //как пользователь авторизовался => создаем именной файл =>добавляем в список с файлами
-    public void addListHistory(String nickname){
-        File file = new File("history_"+nickname+".txt");
+
+    //как пользователь авторизовался => создаем именной файл =>добавляем в список с файлами
+    private void addListHistory(String nickname) {
+        File file = new File("history_" + nickname + ".txt");
         history.add(file);
     }
 
     //записываем в файл => в такой то директории
-    private void wrtMsgToLogFile(String nickname,String msg) {
-        try (BufferedWriter out = new BufferedWriter(new FileWriter("C:/Users/EvgenyBoss/Desktop/january-chat/" +
-                                                            "HistoryLog/history_"+nickname+".txt",true))) {
-            out.write( msg + "\n");
-            out.flush();        //выполняет все чтобыло в буфере и очищает его
+    private void wrtMsgToLogFile(String msg) {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter("HistoryLog/history_" + nickname + ".txt", true))) {
+            out.write(msg + "\n");
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    //создадим метод который будет вытаскивать файл из списка файла
-    private File getOutFile(String nickname){
-        String name = "history_"+nickname+".txt/";
-        File file = null;
-        if (history.size() != 0){
-            for (int i = 0; i < history.size(); i++) {
-                if (history.get(i).equals(name)) {
-                     file = history.get(i);
-                }
-            }
-        }
-        return file;
     }
 
     public void tryToAuth(ActionEvent actionEvent) {
