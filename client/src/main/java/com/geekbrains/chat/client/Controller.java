@@ -2,15 +2,17 @@ package com.geekbrains.chat.client;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -32,8 +34,9 @@ public class Controller implements Initializable {
     private Network network;
     private boolean authenticated;
     private String nickname;
+    private List<File> history = new ArrayList<>();
 
-    public void setAuthenticated(boolean authenticated) {
+    private void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
         loginBox.setVisible(!authenticated);
         loginBox.setManaged(!authenticated);
@@ -55,7 +58,7 @@ public class Controller implements Initializable {
         });
     }
 
-    public void tryToConnect() {
+    private void tryToConnect() {
         try {
             if (network != null && network.isConnected()) {
                 return;
@@ -69,7 +72,9 @@ public class Controller implements Initializable {
                         if (msg.startsWith("/authok ")) { // /authok nick1
                             nickname = msg.split(" ")[1];
                             textArea.appendText("Вы зашли в чат под ником: " + nickname + "\n");
+                            textArea.appendText(getHistory());//добавим 100 последних строка истории в лог
                             setAuthenticated(true);
+                            addListHistory(nickname);
                             break;
                         }
                         textArea.appendText(msg + "\n");
@@ -81,7 +86,7 @@ public class Controller implements Initializable {
                                 textArea.appendText("Завершено общение с сервером\n");
                                 break;
                             }
-                            if (msg.startsWith("/set_nick_to ")) {
+                            if (msg.startsWith("/set_nick_to  ")) {
                                 nickname = msg.split(" ")[1];
                                 textArea.appendText("Ваш новый ник: " + nickname + "\n");
                                 continue;
@@ -98,7 +103,9 @@ public class Controller implements Initializable {
                                 });
                             }
                         } else {
-                            textArea.appendText(msg + "\n");
+                            textArea.appendText(msg + "\n");      //сообщение что пишет юзер в текстполе
+                            wrtMsgToLogFile(msg);
+
                         }
                     }
                 } catch (IOException e) {
@@ -119,15 +126,47 @@ public class Controller implements Initializable {
             alert.showAndWait();
         }
     }
+    //достанем последние 100 строка из файла
+    private String getHistory() {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader out = new BufferedReader(new FileReader("HistoryLog/history_" + nickname + ".txt"))) {
+            List<String> list = Files.readAllLines(Paths.get("HistoryLog/history_" + nickname + ".txt"));
+            int start = 0;
+            if (list.size() > 100) start = list.size() - 100;
+            for (int i = start; i < list.size(); i++) {
+                 sb.append(list.get(i)).append("\n");
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return sb.toString();
 
+    }
+
+    //в текстовое поле текст и очищается поле ввода(по Enter)
     public void sendMsg(ActionEvent actionEvent) {
         try {
-            network.sendMsg(msgField.getText());
+            network.sendMsg(msgField.getText());//запиши в исход все что в текстполе
             msgField.clear();
             msgField.requestFocus();
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "Не удалось отправить сообщение, проверьте сетевое подключение", ButtonType.OK);
             alert.showAndWait();
+        }
+    }
+
+    //как пользователь авторизовался => создаем именной файл =>добавляем в список с файлами
+    private void addListHistory(String nickname) {
+        File file = new File("history_" + nickname + ".txt");
+        history.add(file);
+    }
+
+    //записываем в файл => в такой то директории
+    private void wrtMsgToLogFile(String msg) {
+        try (BufferedWriter out = new BufferedWriter(new FileWriter("HistoryLog/history_" + nickname + ".txt", true))) {
+            out.write(msg + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
