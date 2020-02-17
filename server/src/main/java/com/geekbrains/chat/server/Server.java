@@ -9,6 +9,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
     private AuthManager authManager;
@@ -23,18 +25,24 @@ public class Server {
         clients = new ArrayList<>();
         authManager = new DbAuthManager();
         authManager.start();                           //подключаемся к базе
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Сервер запущен. Ожидаем подключения клиентов...");
-            while (true) {
-                Socket socket = serverSocket.accept();
-                System.out.println("Клиент подключился");
-                new ClientHandler(this, socket);// сервер кто подключил, и сокет который образовался при подключении
+        ExecutorService service = Executors.newFixedThreadPool(4);
+        service.execute(()->{
+            try (ServerSocket serverSocket = new ServerSocket(port)) {
+                System.out.println("Сервер запущен. Ожидаем подключения клиентов...");
+                while (true) {
+                    System.out.println("Имя потока принимающего клиента " + Thread.currentThread().getName());
+                    Socket socket = serverSocket.accept();
+                    System.out.println("Клиент подключился "+ socket.getPort()+" "+ socket.getInetAddress());
+                    new ClientHandler(this, socket);// сервер кто подключил, и сокет который образовался при подключении
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }finally {
+                authManager.stop();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }finally {
-            authManager.stop();
-        }
+        });
+        service.shutdown();
+        //много предположений, но нет уверенности в их верности насчет нужен ли пул потоков
     }
 
     public void broadcastMsg(String msg, boolean withDateTime) {

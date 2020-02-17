@@ -1,5 +1,8 @@
 package com.geekbrains.chat.server;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MainApp {
     // Домашнее задание:
     // 1. Разробраться с финальным вариантом кода. Задать вопросы что непонятно.
