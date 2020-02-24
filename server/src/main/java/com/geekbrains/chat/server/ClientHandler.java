@@ -1,5 +1,8 @@
 package com.geekbrains.chat.server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -12,6 +15,7 @@ public class ClientHandler {
     private DataInputStream in;
     private DataOutputStream out;
     private String nickname;
+    private static final Logger LOGGER = LogManager.getLogger(ClientHandler.class);
 
     public String getNickname() {
         return nickname;
@@ -29,18 +33,23 @@ public class ClientHandler {
                     System.out.print("Сообщение от клиента: " + msg + "\n");
                     if (msg.startsWith("/auth ")) { // /auth login1 pass1
                         String[] tokens = msg.split(" ", 3);
+                        LOGGER.info("Клиент прислал команду: "+ "[" + tokens[0] + "]");
                         String nickFromAuthManager = server.getAuthManager().getNicknameByLoginAndPassword(tokens[1], tokens[2]);
                         if (nickFromAuthManager != null) {
                             if (server.isNickBusy(nickFromAuthManager)) {
                                 sendMsg("Данный пользователь уже в чате");
+                                LOGGER.info("Попытка войти под этим логином -" + "["+ server.getAuthManager().getNicknameByLoginAndPassword(tokens[1], tokens[2]) +
+                                        "]" + " этот пользователь в сети");
                                 continue;
                             }
                             nickname = nickFromAuthManager;
                             sendMsg("/authok " + nickname);
+                            LOGGER.info(nickname + " Авторизовался");
                             server.subscribe(this);
                             break;
                         } else {
                             sendMsg("Указан неверный логин/пароль");
+                            LOGGER.info("Указан неверный логин/пароль");
                         }
                     }
                 }
@@ -55,17 +64,22 @@ public class ClientHandler {
                         }
                         if (msg.startsWith("/changenick ")) {
                             String[] tokens = msg.split(" ", 2); // /changenick newNickname
+                            LOGGER.info("Клиент прислал команду: "+ "[" + tokens[0] + "]");
                             String newNickname = tokens[1];
                             if (server.getAuthManager().changeNickname(nickname,newNickname)){
                                 nickname = newNickname;
                                 sendMsg("/set_nick_to " + newNickname);
+                                LOGGER.info( "[/set_nick_to]" + " никнейм изменен на " + newNickname);
+
                             }else{
                                 sendMsg("Сервер: пользователь с таким ником уже существует");
+                                LOGGER.info("Пользователь с ником " + nickname + " существует");
                             }
                             continue;
                         }
                         if (msg.equals("/end")) {
                             sendMsg("/end_confirm");
+                            LOGGER.info("Клиент прислал команду: "+ "[/end]");
                             break;
                         }
                     } else {

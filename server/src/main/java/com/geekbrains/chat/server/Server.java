@@ -1,5 +1,9 @@
 package com.geekbrains.chat.server;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -14,6 +18,7 @@ public class Server {
     private AuthManager authManager;
     private List<ClientHandler> clients;
     private final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final Logger LOGGER = LogManager.getLogger("Server");
 
     public AuthManager getAuthManager() {
         return authManager;
@@ -23,17 +28,22 @@ public class Server {
         clients = new ArrayList<>();
         authManager = new DbAuthManager();
         authManager.start();                           //подключаемся к базе
+        LOGGER.info("Подключились к базе данных");
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Сервер запущен. Ожидаем подключения клиентов...");
+           // System.out.println("Сервер запущен. Ожидаем подключения клиентов...");
+            LOGGER.info("Сервер запущен. Ожидаем подключения клиентов...");
             while (true) {
                 Socket socket = serverSocket.accept();
-                System.out.println("Клиент подключился");
+                //System.out.println("Клиент подключился");
+                LOGGER.info("Клиент подключился");
                 new ClientHandler(this, socket);// сервер кто подключил, и сокет который образовался при подключении
             }
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.throwing(Level.ALL,e);//логирование ошибок при подключении
         }finally {
             authManager.stop();
+            LOGGER.info("Отключились от базы данных");
         }
     }
 
@@ -43,6 +53,7 @@ public class Server {
         }
         for (ClientHandler o : clients) {
             o.sendMsg(msg);
+            LOGGER.info(msg);
         }
     }
 
@@ -59,6 +70,7 @@ public class Server {
     public void sendPrivateMsg(ClientHandler sender, String receiverNickname, String msg) {
         if (sender.getNickname().equals(receiverNickname)) {
             sender.sendMsg("Нельзя посылать личное сообщение самому себе");
+            LOGGER.info("Нельзя посылать личное сообщение самому себе");
             return;
         }
         for (ClientHandler o : clients) {
@@ -82,6 +94,7 @@ public class Server {
 
     public synchronized void subscribe(ClientHandler clientHandler) {
         broadcastMsg(clientHandler.getNickname() + " зашел в чат", false);
+        LOGGER.info(clientHandler.getNickname() + " зашел в чат");
         clients.add(clientHandler);
         broadcastClientsList();
     }
@@ -89,6 +102,7 @@ public class Server {
     public synchronized void unsubscribe(ClientHandler clientHandler) {
         clients.remove(clientHandler);
         broadcastMsg(clientHandler.getNickname() + " вышел из чата", false);
+        LOGGER.info(clientHandler.getNickname() + " вышел из чата");
         broadcastClientsList();
     }
 }
