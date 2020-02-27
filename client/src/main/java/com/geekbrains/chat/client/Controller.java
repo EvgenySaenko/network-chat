@@ -105,7 +105,6 @@ public class Controller implements Initializable {
                         } else {
                             textArea.appendText(msg + "\n");      //сообщение что пишет юзер в текстполе
                             wrtMsgToLogFile(msg);
-
                         }
                     }
                 } catch (IOException e) {
